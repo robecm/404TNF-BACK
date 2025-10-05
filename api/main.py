@@ -3,22 +3,32 @@ import joblib
 import numpy as np
 from pydantic import BaseModel
 from pathlib import Path
+import os
 
 # --- INICIO: Carga del Modelo ---
-# Detect absolute path for the current file
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_DIR = BASE_DIR / "models"
+# Use a path relative to the project root, which is more reliable on Vercel.
+# Vercel sets the working directory to the project root (`/var/task`).
+# The path from the root to your models is 'api/models'.
+MODEL_DIR = Path("api/models")
 
 model_path = MODEL_DIR / "exoplanet_model.pkl"
 encoder_path = MODEL_DIR / "label_encoder.pkl"
 
 try:
-    print(f"Loading model from: {model_path}")
+    # Log the current working directory and the resolved path for debugging
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Attempting to load model from: {model_path.resolve()}")
+
     model = joblib.load(model_path)
     label_encoder = joblib.load(encoder_path)
     print("✅ Modelo y codificador cargados exitosamente.")
 except Exception as e:
-    print("❌ Error cargando modelos:", e)
+    print(f"❌ Error cargando modelos: {e}")
+    # Also print directory contents to see if the files are there
+    if MODEL_DIR.exists():
+        print(f"Contents of '{MODEL_DIR}': {list(MODEL_DIR.iterdir())}")
+    else:
+        print(f"Directory '{MODEL_DIR}' does not exist.")
     model = None
     label_encoder = None
 # --- FIN: Carga del Modelo ---
