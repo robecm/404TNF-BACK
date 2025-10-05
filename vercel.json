@@ -1,8 +1,8 @@
 {
   "functions": {
     "api/main.py": {
-      "runtime": "python3.11",
-      "includeFiles": "models/**"
+      "runtime": "@vercel/python@3.11",
+      "includeFiles": "api/models/**"
     }
   },
   "routes": [
