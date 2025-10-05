@@ -1,19 +1,15 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/main.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/main.py"
-    },
-    {
-      "src": "/",
-      "dest": "api/main.py"
-    }
-  ]
+    "builds": [
+        {
+            "src": "api/main.py",
+            "use": "@vercel/python",
+            "config": { "pip": "api/requirements.txt" }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/main.py"
+        }
+    ]
 }
