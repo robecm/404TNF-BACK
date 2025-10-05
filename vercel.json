@@ -2,11 +2,10 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/main.py",
-      "use": "@vercel/python",
+      "src": "build.sh",
+      "use": "@vercel/static-build",
       "config": {
-        "maxLambdaSize": "100mb",
-        "includeFiles": "api/models/**"
+        "maxLambdaSize": "100mb"
       }
     }
   ],
@@ -15,10 +14,5 @@
       "src": "/(.*)",
       "dest": "api/main.py"
     }
-  ],
-  "build": {
-    "env": {
-      "PIP_EXTRA_INDEX_URL": "https://www.piwheels.org/simple"
-    }
-  }
+  ]
 }
