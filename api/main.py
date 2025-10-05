@@ -66,6 +66,8 @@ app.add_middleware(
         "http://localhost:5174",  # your local frontend
         "http://localhost:5173",
         "https://404-tnf-front.vercel.app/",
+        "https://404-tnf-front.vercel.app",
+        "404-tnf-front.vercel.app",
         "exoptolemy.study", # production
         "www.exoptolemy.study",
     ],
