@@ -1,17 +1,17 @@
-# Usa una imagen base ligera con Python
 FROM python:3.11-slim
 
-# Define el directorio de trabajo
-WORKDIR /app
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copia los archivos del proyecto
-COPY ./api /app
-
-# Instala las dependencias
+# Instalar dependencias de Python
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expone el puerto que usará FastAPI
-EXPOSE 8080
+# Copiar código
+COPY . /app
+WORKDIR /app
 
-# Comando para ejecutar la app
+# Ejecutar FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
