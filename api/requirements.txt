@@ -1,6 +1,8 @@
 fastapi
+uvicorn
 numpy
 scikit-learn
 lightgbm
 joblib
-uvicorn
+lightkurve
+matplotlib
