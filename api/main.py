@@ -6,8 +6,10 @@ from pathlib import Path
 import os
 import traceback
 
-# --- INICIO: Carga del Modelo ---
-MODEL_DIR = Path("api/models")
+# --- INICIO: Carga del Modelo (CORREGIDO) ---
+# Construye la ruta de forma robusta, relativa a la ubicación de este script (main.py)
+SCRIPT_DIR = Path(__file__).parent.resolve()
+MODEL_DIR = SCRIPT_DIR / "models"
 model_path = MODEL_DIR / "exoplanet_model.pkl"
 encoder_path = MODEL_DIR / "label_encoder.pkl"
 
@@ -15,15 +17,15 @@ model = None
 label_encoder = None
 model_loading_error = None
 
-# --- NUEVO: Comprobación explícita de la existencia de archivos ---
+# --- Comprobación explícita de la existencia de archivos ---
 print(f"Current working directory: {os.getcwd()}")
-print(f"Checking for model at: {model_path.resolve()}")
+print(f"Checking for model at: {model_path}")
 if not model_path.exists():
-    model_loading_error = {"error_message": f"Model file not found at {model_path.resolve()}"}
-    print(f"❌ ERROR: Model file not found at {model_path.resolve()}")
+    model_loading_error = {"error_message": f"Model file not found at {model_path}"}
+    print(f"❌ ERROR: Model file not found at {model_path}")
 elif not encoder_path.exists():
-    model_loading_error = {"error_message": f"Encoder file not found at {encoder_path.resolve()}"}
-    print(f"❌ ERROR: Encoder file not found at {encoder_path.resolve()}")
+    model_loading_error = {"error_message": f"Encoder file not found at {encoder_path}"}
+    print(f"❌ ERROR: Encoder file not found at {encoder_path}")
 else:
     print("✅ Model and encoder files found. Attempting to load...")
     try:
@@ -95,9 +97,9 @@ def get_debug_info():
         "model_loading_error": model_loading_error,
         "environment_details": {
             "current_working_directory": os.getcwd(),
-            "model_directory_path": str(MODEL_DIR.resolve()),
-            "model_file_path": str(model_path.resolve()),
-            "encoder_file_path": str(encoder_path.resolve()),
+            "model_directory_path": str(MODEL_DIR),
+            "model_file_path": str(model_path),
+            "encoder_file_path": str(encoder_path),
         },
         "file_system_check": {
             "project_root_contents": list_dir_safely(Path(".")),
