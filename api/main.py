@@ -1,4 +1,3 @@
-
 # main.py
 from fastapi import FastAPI
 from config import snow_conn
@@ -13,6 +12,7 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+# Only run uvicorn locally
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
