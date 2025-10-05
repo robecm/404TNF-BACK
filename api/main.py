@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
 from pydantic import BaseModel
@@ -6,8 +7,8 @@ from pathlib import Path
 import os
 import traceback
 
-# --- INICIO: Carga del Modelo (CORREGIDO) ---
-# Construye la ruta de forma robusta, relativa a la ubicación de este script (main.py)
+# --- Model Loading ---
+# Build a robust path relative to this script's location (main.py)
 SCRIPT_DIR = Path(__file__).parent.resolve()
 MODEL_DIR = SCRIPT_DIR / "models"
 model_path = MODEL_DIR / "exoplanet_model.pkl"
@@ -17,32 +18,24 @@ model = None
 label_encoder = None
 model_loading_error = None
 
-# --- Comprobación explícita de la existencia de archivos ---
-print(f"Current working directory: {os.getcwd()}")
-print(f"Checking for model at: {model_path}")
 if not model_path.exists():
     model_loading_error = {"error_message": f"Model file not found at {model_path}"}
-    print(f"❌ ERROR: Model file not found at {model_path}")
 elif not encoder_path.exists():
     model_loading_error = {"error_message": f"Encoder file not found at {encoder_path}"}
-    print(f"❌ ERROR: Encoder file not found at {encoder_path}")
 else:
-    print("✅ Model and encoder files found. Attempting to load...")
     try:
         model = joblib.load(model_path)
         label_encoder = joblib.load(encoder_path)
-        print("✅ Modelo y codificador cargados exitosamente.")
     except Exception as e:
         model_loading_error = {
             "error_type": type(e).__name__,
             "error_message": str(e),
             "traceback": traceback.format_exc()
         }
-        print(f"❌ Error cargando modelos con joblib: {e}")
-# --- FIN: Carga del Modelo ---
+# --- End Model Loading ---
 
 
-# --- INICIO: Definición de Datos de Entrada ---
+# --- Input Data Definition ---
 class CandidateInput(BaseModel):
     koi_period: float
     koi_time0bk: float
@@ -56,20 +49,33 @@ class CandidateInput(BaseModel):
     koi_steff: float
     koi_slogg: float
     koi_srad: float
-# --- FIN: Definición de Datos de Entrada ---
+# --- End Input Data Definition ---
 
 
-# --- Creación de la Aplicación FastAPI ---
+# --- FastAPI App Creation ---
 app = FastAPI(
-    title="API de Detección de Exoplanetas - NASA Hackathon",
-    description="Una API para predecir si un objeto de interés es un exoplaneta basado en características físicas.",
+    title="Exoplanet Detection API - NASA Hackathon",
+    description="An API to predict if an object of interest is an exoplanet based on physical characteristics.",
     version="1.0.0"
 )
+
+# --- Enable CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5174",  # your local frontend
+        "https://your-domain.vercel.app",  # (optional) for production
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# --------------------------
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Bienvenido a la API de Detección de Exoplanetas."}
+    return {"message": "Welcome to the Exoplanet Detection API."}
 
 
 @app.get("/api/health")
@@ -111,16 +117,16 @@ def get_debug_info():
     }
 
 
-# --- INICIO: Endpoint del Modelo de Predicción ---
-@app.post("/predict", tags=["Predicciones"])
+# --- Prediction Endpoint ---
+@app.post("/predict", tags=["Predictions"])
 def get_prediction(data: CandidateInput):
     """
-    Recibe los 12 parámetros físicos de un candidato y devuelve una predicción.
+    Receives the 12 physical parameters of a candidate and returns a prediction.
     """
     if model_loading_error:
-        return {"error": "El modelo no está cargado. Revisa los logs del servidor o el endpoint /debug-info.", "details": model_loading_error}
+        return {"error": "Model is not loaded. Check server logs or the /debug-info endpoint.", "details": model_loading_error}
     if not model or not label_encoder:
-        return {"error": "El modelo no está cargado por una razón desconocida."}
+        return {"error": "Model is not loaded for an unknown reason."}
 
     input_data = data.model_dump()
     feature_order = [
@@ -137,10 +143,10 @@ def get_prediction(data: CandidateInput):
     confidence = float(prediction_proba[prediction_encoded])
 
     return {
-        "veredicto": prediction_label,
-        "confianza": confidence
+        "verdict": prediction_label,
+        "confidence": confidence
     }
-# --- FIN: Endpoint del Modelo de Predicción ---
+# --- End Prediction Endpoint ---
 
 
 if __name__ == "__main__":
