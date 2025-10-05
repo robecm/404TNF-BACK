@@ -64,7 +64,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5174",  # your local frontend
-        "https://your-domain.vercel.app",  # (optional) for production
+        "http://localhost:5173",
+        "https://404-tnf-front.vercel.app/",
+        "exoptolemy.study", # production
+        "www.exoptolemy.study",
     ],
     allow_credentials=True,
     allow_methods=["*"],
