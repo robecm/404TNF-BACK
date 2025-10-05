@@ -1,5 +1,5 @@
 fastapi
-pandas
+numpy
 scikit-learn
 lightgbm
 joblib

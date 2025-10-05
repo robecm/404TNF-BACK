@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-import pandas as pd
 import joblib
+import numpy as np
 from pydantic import BaseModel
 
 # --- INICIO: Carga del Modelo ---
@@ -62,12 +62,20 @@ def get_prediction(data: CandidateInput):
     if not model or not label_encoder:
         return {"error": "El modelo no está cargado. Revisa los logs del servidor."}
 
-    # Convertimos los datos de entrada a un DataFrame de pandas
-    input_df = pd.DataFrame([data.dict()])
+    # Convertimos los datos de entrada a un array de NumPy
+    # El orden de las características debe coincidir con el entrenamiento del modelo.
+    input_data = data.dict()
+    feature_order = [
+        'koi_period', 'koi_time0bk', 'koi_impact', 'koi_duration', 'koi_depth',
+        'koi_prad', 'koi_teq', 'koi_insol', 'koi_model_snr', 'koi_steff',
+        'koi_slogg', 'koi_srad'
+    ]
+    input_array = np.array([[input_data[feature] for feature in feature_order]])
+
 
     # Realizamos la predicción y obtenemos las probabilidades
-    prediction_encoded = model.predict(input_df)[0]
-    prediction_proba = model.predict_proba(input_df)[0]
+    prediction_encoded = model.predict(input_array)[0]
+    prediction_proba = model.predict_proba(input_array)[0]
 
     # Decodificamos el resultado para obtener la etiqueta de texto (ej. "CANDIDATE")
     prediction_label = label_encoder.inverse_transform([prediction_encoded])[0]
