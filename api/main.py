@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from config import snow_conn
+
 
 app = FastAPI()
 
