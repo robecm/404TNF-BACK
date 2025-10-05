@@ -2,12 +2,17 @@ from fastapi import FastAPI
 import joblib
 import numpy as np
 from pydantic import BaseModel
+from pathlib import Path
 
 # --- INICIO: Carga del Modelo ---
 # Cargamos el modelo y el codificador al iniciar la aplicación.
 try:
-    model = joblib.load(r'models/exoplanet_model.pkl')
-    label_encoder = joblib.load(r'models/label_encoder.pkl')
+    BASE_DIR = Path(__file__).resolve().parent
+    model_path = BASE_DIR / "models" / "exoplanet_model.pkl"
+    encoder_path = BASE_DIR / "models" / "label_encoder.pkl"
+
+    model = joblib.load(model_path)
+    label_encoder = joblib.load(encoder_path)
     print("Modelo y codificador cargados exitosamente.")
 except FileNotFoundError:
     model = None
