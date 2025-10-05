@@ -5,20 +5,22 @@ from pydantic import BaseModel
 from pathlib import Path
 
 # --- INICIO: Carga del Modelo ---
-# Cargamos el modelo y el codificador al iniciar la aplicación.
-try:
-    BASE_DIR = Path(__file__).resolve().parent
-    model_path = BASE_DIR / "models" / "exoplanet_model.pkl"
-    encoder_path = BASE_DIR / "models" / "label_encoder.pkl"
+# Detect absolute path for the current file
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = BASE_DIR / "models"
 
+model_path = MODEL_DIR / "exoplanet_model.pkl"
+encoder_path = MODEL_DIR / "label_encoder.pkl"
+
+try:
+    print(f"Loading model from: {model_path}")
     model = joblib.load(model_path)
     label_encoder = joblib.load(encoder_path)
-    print("Modelo y codificador cargados exitosamente.")
-except FileNotFoundError:
+    print("✅ Modelo y codificador cargados exitosamente.")
+except Exception as e:
+    print("❌ Error cargando modelos:", e)
     model = None
     label_encoder = None
-    print("ERROR: No se encontraron los archivos 'exoplanet_model.pkl' o 'label_encoder.pkl'.")
-    print("Asegúrate de que los archivos del modelo estén en la misma carpeta que main.py.")
 # --- FIN: Carga del Modelo ---
 
 
