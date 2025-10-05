@@ -6,8 +6,8 @@ from pydantic import BaseModel
 # --- INICIO: Carga del Modelo ---
 # Cargamos el modelo y el codificador al iniciar la aplicación.
 try:
-    model = joblib.load('models/exoplanet_model.pkl')
-    label_encoder = joblib.load('models/label_encoder.pkl')
+    model = joblib.load(r'models/exoplanet_model.pkl')
+    label_encoder = joblib.load(r'models/label_encoder.pkl')
     print("Modelo y codificador cargados exitosamente.")
 except FileNotFoundError:
     model = None
@@ -51,6 +51,31 @@ def read_root():
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/model_status", tags=["Status"])
+def model_status():
+    """
+    Verifica si el modelo y el codificador de etiquetas se cargaron correctamente.
+    """
+    model_loaded = model is not None
+    encoder_loaded = label_encoder is not None
+
+    if model_loaded and encoder_loaded:
+        status_message = "Modelo y codificador cargados exitosamente."
+    else:
+        missing_files = []
+        if not model_loaded:
+            missing_files.append("exoplanet_model.pkl")
+        if not encoder_loaded:
+            missing_files.append("label_encoder.pkl")
+        status_message = f"Error: No se pudieron cargar los siguientes archivos: {', '.join(missing_files)}"
+
+    return {
+        "model_loaded": model_loaded,
+        "label_encoder_loaded": encoder_loaded,
+        "status": status_message
+    }
 
 
 # --- INICIO: Endpoint del Modelo de Predicción ---
