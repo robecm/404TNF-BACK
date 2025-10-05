@@ -20,7 +20,9 @@ httptools==0.6.4
 httpx==0.28.1
 idna==3.10
 Jinja2==3.1.6
+joblib
 jmespath==1.0.1
+lightgbm
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
@@ -44,6 +46,7 @@ rich==14.1.0
 rich-toolkit==0.15.1
 rignore==0.7.0
 s3transfer==0.14.0
+scikit-learn
 sentry-sdk==2.39.0
 shellingham==1.5.4
 six==1.17.0
