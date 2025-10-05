@@ -1,11 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 import joblib
 import numpy as np
 from pydantic import BaseModel
 from pathlib import Path
 import os
 import traceback
+import io
+import lightkurve as lk
+import matplotlib
+
+# Use a non-interactive backend for Matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 # --- Model Loading ---
 # Build a robust path relative to this script's location (main.py)
@@ -37,6 +46,11 @@ else:
 
 # --- Input Data Definition ---
 class CandidateInput(BaseModel):
+    # Optional fields for the lightcurve function
+    ID: int | None = None
+    mission: str | None = None
+
+    # Features for the prediction model
     koi_period: float
     koi_time0bk: float
     koi_impact: float
@@ -55,8 +69,8 @@ class CandidateInput(BaseModel):
 # --- FastAPI App Creation ---
 app = FastAPI(
     title="Exoplanet Detection API - NASA Hackathon",
-    description="An API to predict if an object of interest is an exoplanet based on physical characteristics.",
-    version="1.0.0"
+    description="An API to predict if an object of interest is an exoplanet and visualize its light curve.",
+    version="1.1.0"
 )
 
 # --- Enable CORS ---
@@ -133,7 +147,8 @@ def get_prediction(data: CandidateInput):
     if not model or not label_encoder:
         return {"error": "Model is not loaded for an unknown reason."}
 
-    input_data = data.model_dump()
+    # Exclude optional fields not used by the model for prediction
+    input_data = data.model_dump(exclude={'ID', 'mission'})
     feature_order = [
         'koi_period', 'koi_time0bk', 'koi_impact', 'koi_duration', 'koi_depth',
         'koi_prad', 'koi_teq', 'koi_insol', 'koi_model_snr', 'koi_steff',
@@ -152,6 +167,57 @@ def get_prediction(data: CandidateInput):
         "confidence": confidence
     }
 # --- End Prediction Endpoint ---
+
+
+# --- Light Curve Endpoint ---
+@app.get("/lightcurve/{mission}/{ID}", tags=["Visualization"])
+def get_lightcurve(mission: str, ID: int):
+    """
+    Downloads light curve data for an object (by its ID and mission),
+    processes it, generates a plot, and returns it as a PNG image.
+    """
+    try:
+        # 1. Search and download data from NASA using lightkurve
+        print(f"Searching for light curve for Mission: {mission}, ID: {ID}...")
+        search_query = ""
+        if mission.lower() == "kepler":
+            search_query = f'KIC {ID}'
+        elif mission.lower() == "tess":
+            search_query = f'TIC {ID}'
+        else:
+            raise HTTPException(status_code=400, detail="Invalid mission. Use 'Kepler' or 'TESS'")
+
+        search_result = lk.search_lightcurve(search_query, mission=mission)
+
+        if not search_result:
+            raise HTTPException(status_code=404, detail=f"No data found for ID {ID} in mission {mission}.")
+
+        lc_collection = search_result[0].download()
+        lc = lc_collection.flatten().remove_outliers()
+
+        # 2. Create the plot with Matplotlib
+        fig, ax = plt.subplots(figsize=(12, 5))
+        lc.plot(ax=ax, marker='.', color='blue', markersize=1.5, alpha=0.5)
+        ax.set_title(f'Processed Light Curve for {mission} ID {ID}')
+
+        # 3. Save the plot to an in-memory buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)  # Close the figure to free up memory
+
+        print(f"Plot generated successfully for ID {ID}.")
+
+        # 4. Return the image
+        return StreamingResponse(buf, media_type="image/png")
+
+    except HTTPException as e:
+        # Re-raise HTTPExceptions to let FastAPI handle them
+        raise e
+    except Exception as e:
+        print(f"Error processing ID {ID}: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while generating the light curve: {str(e)}")
+# --- End Light Curve Endpoint ---
 
 
 if __name__ == "__main__":
