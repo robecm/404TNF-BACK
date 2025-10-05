@@ -4,6 +4,7 @@ import numpy as np
 from pydantic import BaseModel
 from pathlib import Path
 import os
+import traceback
 
 # --- INICIO: Carga del Modelo ---
 # Use a path relative to the project root, which is more reliable on Vercel.
@@ -14,6 +15,11 @@ MODEL_DIR = Path("api/models")
 model_path = MODEL_DIR / "exoplanet_model.pkl"
 encoder_path = MODEL_DIR / "label_encoder.pkl"
 
+# Global variables to hold the models and any loading error
+model = None
+label_encoder = None
+model_loading_error = None
+
 try:
     # Log the current working directory and the resolved path for debugging
     print(f"Current working directory: {os.getcwd()}")
@@ -23,14 +29,13 @@ try:
     label_encoder = joblib.load(encoder_path)
     print("✅ Modelo y codificador cargados exitosamente.")
 except Exception as e:
+    # Store the exception details for debugging
+    model_loading_error = {
+        "error_type": type(e).__name__,
+        "error_message": str(e),
+        "traceback": traceback.format_exc()
+    }
     print(f"❌ Error cargando modelos: {e}")
-    # Also print directory contents to see if the files are there
-    if MODEL_DIR.exists():
-        print(f"Contents of '{MODEL_DIR}': {list(MODEL_DIR.iterdir())}")
-    else:
-        print(f"Directory '{MODEL_DIR}' does not exist.")
-    model = None
-    label_encoder = None
 # --- FIN: Carga del Modelo ---
 
 
@@ -70,28 +75,38 @@ def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/model_status", tags=["Status"])
-def model_status():
+@app.get("/debug-info", tags=["Status"])
+def get_debug_info():
     """
-    Verifica si el modelo y el codificador de etiquetas se cargaron correctamente.
+    Provides detailed debugging information about the application environment.
     """
-    model_loaded = model is not None
-    encoder_loaded = label_encoder is not None
-
-    if model_loaded and encoder_loaded:
-        status_message = "Modelo y codificador cargados exitosamente."
-    else:
-        missing_files = []
-        if not model_loaded:
-            missing_files.append("exoplanet_model.pkl")
-        if not encoder_loaded:
-            missing_files.append("label_encoder.pkl")
-        status_message = f"Error: No se pudieron cargar los siguientes archivos: {', '.join(missing_files)}"
+    # Helper to list directory contents safely
+    def list_dir_safely(path_obj):
+        try:
+            if path_obj.exists() and path_obj.is_dir():
+                return [p.name for p in path_obj.iterdir()]
+            elif path_obj.exists():
+                return f"'{path_obj}' exists but is not a directory."
+            else:
+                return f"Path '{path_obj}' does not exist."
+        except Exception as e:
+            return f"Error listing directory '{path_obj}': {str(e)}"
 
     return {
-        "model_loaded": model_loaded,
-        "label_encoder_loaded": encoder_loaded,
-        "status": status_message
+        "model_loading_error": model_loading_error,
+        "environment_details": {
+            "current_working_directory": os.getcwd(),
+            "model_directory_path": str(MODEL_DIR.resolve()),
+            "model_file_path": str(model_path.resolve()),
+            "encoder_file_path": str(encoder_path.resolve()),
+        },
+        "file_system_check": {
+            "project_root_contents": list_dir_safely(Path(".")),
+            "api_dir_contents": list_dir_safely(Path("api")),
+            "models_dir_contents": list_dir_safely(MODEL_DIR),
+            "model_file_exists": model_path.exists(),
+            "encoder_file_exists": encoder_path.exists(),
+        }
     }
 
 
@@ -102,11 +117,11 @@ def get_prediction(data: CandidateInput):
     Recibe los 12 parámetros físicos de un candidato y devuelve una predicción.
     """
     if not model or not label_encoder:
-        return {"error": "El modelo no está cargado. Revisa los logs del servidor."}
+        return {"error": "El modelo no está cargado. Revisa los logs del servidor o el endpoint /debug-info."}
 
     # Convertimos los datos de entrada a un array de NumPy
     # El orden de las características debe coincidir con el entrenamiento del modelo.
-    input_data = data.dict()
+    input_data = data.model_dump() # Use model_dump() instead of deprecated dict()
     feature_order = [
         'koi_period', 'koi_time0bk', 'koi_impact', 'koi_duration', 'koi_depth',
         'koi_prad', 'koi_teq', 'koi_insol', 'koi_model_snr', 'koi_steff',
