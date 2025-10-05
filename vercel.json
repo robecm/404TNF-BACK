@@ -15,5 +15,10 @@
       "src": "/(.*)",
       "dest": "api/main.py"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PIP_EXTRA_INDEX_URL": "https://www.piwheels.org/simple"
+    }
+  }
 }
